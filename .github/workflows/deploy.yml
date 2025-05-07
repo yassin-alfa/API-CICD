@@ -1,13 +1,13 @@
 name: CI/CD SAM
 
-# Déclenche sur chaque push vers main, et en manuel pour promotion test/prod
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
 
 jobs:
-  build-and-package:
+  deploy-dev:
+    name: Build & Deploy Dev
     runs-on: ubuntu-latest
     steps:
       - name: Checkout du code
@@ -18,34 +18,18 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Installer SAM CLI & AWS CLI
+      - name: Installer SAM CLI et AWS CLI
         run: |
           python -m pip install --upgrade pip
           pip install aws-sam-cli awscli
 
-      - name: Build de l’application SAM
+      - name: Build SAM
         run: sam build
 
-      - name: Package SAM dans S3
-        run: |
-          sam package \
-            --s3-bucket ${{ secrets.S3_BUCKET }} \
-            --output-template-file packaged.yaml
-
-      - name: Upload du template packagé
-        uses: actions/upload-artifact@v2
-        with:
-          name: packaged-template
-          path: packaged.yaml
-
-  deploy-dev:
-    needs: build-and-package
-    runs-on: ubuntu-latest
-    steps:
-      - name: Télécharger le template packagé
-        uses: actions/download-artifact@v2
-        with:
-          name: packaged-template
+      - name: Package SAM
+        run: sam package \
+              --s3-bucket ${{ secrets.S3_BUCKET }} \
+              --output-template-file packaged.yaml
 
       - name: Configurer les credentials AWS
         uses: aws-actions/configure-aws-credentials@v2
@@ -64,14 +48,31 @@ jobs:
             --parameter-overrides StageName=dev
 
   deploy-test:
-    needs: build-and-package
+    name: Deploy Test (manuel)
+    needs: deploy-dev
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-      - name: Télécharger le template packagé
-        uses: actions/download-artifact@v2
+      - name: Checkout du code
+        uses: actions/checkout@v3
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v4
         with:
-          name: packaged-template
+          python-version: '3.11'
+
+      - name: Installer SAM CLI et AWS CLI
+        run: |
+          python -m pip install --upgrade pip
+          pip install aws-sam-cli awscli
+
+      - name: Build SAM
+        run: sam build
+
+      - name: Package SAM
+        run: sam package \
+              --s3-bucket ${{ secrets.S3_BUCKET }} \
+              --output-template-file packaged.yaml
 
       - name: Configurer les credentials AWS
         uses: aws-actions/configure-aws-credentials@v2
@@ -90,14 +91,31 @@ jobs:
             --parameter-overrides StageName=test
 
   deploy-prod:
-    needs: build-and-package
+    name: Deploy Prod (manuel)
+    needs: deploy-dev
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-      - name: Télécharger le template packagé
-        uses: actions/download-artifact@v2
+      - name: Checkout du code
+        uses: actions/checkout@v3
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v4
         with:
-          name: packaged-template
+          python-version: '3.11'
+
+      - name: Installer SAM CLI et AWS CLI
+        run: |
+          python -m pip install --upgrade pip
+          pip install aws-sam-cli awscli
+
+      - name: Build SAM
+        run: sam build
+
+      - name: Package SAM
+        run: sam package \
+              --s3-bucket ${{ secrets.S3_BUCKET }} \
+              --output-template-file packaged.yaml
 
       - name: Configurer les credentials AWS
         uses: aws-actions/configure-aws-credentials@v2
