@@ -8,8 +8,6 @@ on:
 jobs:
   build-and-package:
     runs-on: ubuntu-latest
-    outputs:
-      template-file: ${{ steps.package.outputs.template-file }}
     steps:
       - uses: actions/checkout@v3
 
@@ -32,8 +30,6 @@ jobs:
           sam package \
             --s3-bucket ${{ secrets.S3_BUCKET }} \
             --output-template-file packaged.yaml
-        outputs:
-          template-file: packaged.yaml
 
       - name: Upload packaged template
         uses: actions/upload-artifact@v3
@@ -45,7 +41,8 @@ jobs:
     needs: build-and-package
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v3
+      - name: Download packaged template
+        uses: actions/download-artifact@v3
         with:
           name: packaged-template
 
@@ -70,7 +67,8 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v3
+      - name: Download packaged template
+        uses: actions/download-artifact@v3
         with:
           name: packaged-template
 
@@ -95,7 +93,8 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v3
+      - name: Download packaged template
+        uses: actions/download-artifact@v3
         with:
           name: packaged-template
 
